@@ -1,0 +1,105 @@
+
+<Hive>
+
+1. Hive 다운로드 (Linux상에서 다운받을것)
+http://hive.apache.org
+사용중인 하둡 버전과 동일한 수준의 버전을 선택하여 다운로드
+(hadoop-2.9.2를 사용중이므로 hive-2.3.4 다운로드)
+--> 다운받은파일 압축해제 후 /home/centos 로 옮기기
+
+2. 윈도우에 mysql깔기 (Server로 사용할 예정)
+--> mysql 설치 후, 방화벽에서 3306포트 개방
+
+3. 환경변수 설정하기
+gedit /etc/profile
+
+하단에 다음 문구 추가
+export HIVE_HOME=/home/centos/hive-2.3.4
+PATH=$PATH:$HIVE_HOME/bin
+
+source /etc/profile
+reboot
+
+4. hive-env.sh 수정
+cd /home/centos/hive-2.3.4/conf
+cp hive-env.sh.templete hive.env.sh
+gedit $HIVE_HOME/conf/hive-env.sh
+
+HADOOP_HOME=/home/centos/hadoop-2.9.2 (48번 라인 수정)
+(앞쪽의 #은 꼭 지워주어야 한다)
+
+5. Mysql(윈도우)을 Java(리눅스)에서 사용할 수 있도록 조정
+mysql-connector-java-5.1.46을 http://mavenrepository.com에서 다운로드
+(mysql은 8.0버젼을 설치했지만, hive와의 호환성을 위해 jar파일은 더 낮은 버젼을 사용)
+
+윈도우에 설치한 mysql의 mysql-connector-java-5.1.46-bin.jar 파일을
+리눅스의 /home/centos/hive-2,3,4/lib에 복사
+
+6.hive-site.xml 수정
+gedit $HIVE_HOME/conf/hive-site.xml
+
+<?xml version="1.0" encoding="UTF-8" standaline= "no"?>
+<?xml=stylesheet type="text/xls" href="configuration.xml"?>
+
+<configuration>
+     <property>
+	<name>hive.metastore.local</name>
+	<value>true</value>
+     </property>
+     <property>
+	<name>javax.jdo.option.ConnectionURL</name>
+	<value>jdbc:mysql://본인윈도우의mysql_ip주소를적기:3306/hive?useSSL=false&amp;createDatabaseIfNotExist=true</value>
+     </property>
+     <property>
+	<name>javax.jdo.option.ConnectionDriveName</name>
+	<value>com.mysql.jdbc.Driver</value>
+     </property>
+     <property>
+	<name>javax.jdo.option.ConnectionUserName</name>
+	<value>hive</value>
+     </property>
+     <property>
+	<name>javax.jdo.option.ConnectionPassword</name>
+	<value>hive</value>
+     </property>
+</configurarion>
+
+7. metastore 초기화
+
+윈도우의 mysql에서 DB생성 ) create database hive;
+윈도우의 mysql에서 사용자계정추가 ) id:hive, pwd:hive, 권한:%(모든권한)
+
+schematool -initSchema -dbType mysql
+(hive가 설치된 리눅스 머신에서 초기화 진행)
+
+
+< 테스트 >
+
+1. hdfs 디렉토리 생성
+hdfs dfs -mkdir /tmp
+hdfs dfs -mkdir /user
+hdfs dfs -mkdir /user/hive
+hdfs dfs -mkdir /user/hive/warehouse
+
+hdfs dfs -chmod g+x /tmp
+hdfs dfs -chmod g+x /user/hive
+hdfs dfs -chmod g+x /user/hive/warehouse
+
+2. hive 실행
+
+hive
+
+3. 테이블 만들기
+create table dept (dname string, loc string, deptno int)
+row format delimited         -> 행 포멧을 지정하겠다
+fields terminated by ',';       -> 필드 구분자는 ,로 하겠다
+
+4. 데이터 파일불러오기
+local data local inpath '/home/centos/hata/dept.csv' overwrite into table dept;
+(inpath 경로의 .csv파일을 읽어서 dept테이블로 읽어오기)
+
+5. 테이블 확인
+select * from dept;
+
+set hive.cli.print.header=true (header를 표시)
+select * from dept;

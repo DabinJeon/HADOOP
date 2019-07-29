@@ -1,0 +1,57 @@
+
+< SPARK >
+
+1. Spark 다운로드 (Linux상에서 다운받을것)
+http://spark.apache.org/
+다운로드탭 선택 후 2.3.3버전 선택 -> 3. Download Spark 옆 링크 클릭해서 다운로드
+-> 다운받은파일 압축해제 후 /home/centos/ 로 옮기기
+
+2. yarn-site.xml 수정하기 (master에서 실행)
+gedit $HADOOP_HOME/etc/hadoop/yarn-site.xml
+
+다음 문구 추가
+<property>
+    <name>yarn.nodemanager.pmem-check-enabled</name>
+    <value>false</value>
+</property>
+<property>
+    <name>yarn.nodemanager.vmem-check-enabled</name>
+    <value>false</value>
+</property>
+
+3. 환경변수 설정하기 (master에서 실행)
+
+gedit ~/.bashrc
+
+하단에 다음 문구 추가
+export YARN_CONF_DIR=$HADOOP_HOME/etc/hadoop
+export SPARK_HOME=/home/centos/spark-2.3.3-bin-hadoop2.7
+export PATH=$PATH:$SPARK_HOME/bin
+
+source ~/.bashrc
+
+4. 스파크 폴더로 이동하여 실행하기
+
+start-dfs.sh
+start-yarn.sh
+
+cd /home/centos/spark-2.3.3-bin-hadoop2.7
+bin/spark-shell --master yarn
+
+웹브라우저에서 master:4040 접속하여 정상작동 확인
+
+
+< 테스트 >
+
+spark> val hFile = sc.textFile("hdfs://master:9000/input/README.txt")
+                        -> 이전에 hdfs에 업로드했던 파일로 테스트하는것
+spark> val wc = hFile.flatMap(line => line.split(" ")).map(word => (word, 1)).reduceByKey(_ + _)
+spark> wc.take(5)
+
+Array[(String, Int)] = Array((under,1), (this,3), (distribution,2), (Technology,1), (country,1))
+ -> 출력되면 정상작동하는것@@
+
+** 스칼라쉘 명령어 참고 **
+https://data-flair.training/blogs/scala-spark-shell-commands/
+
+
